@@ -94,8 +94,8 @@ There will be a time gap to remove time you Have To Buy Subscription /plan For d
     inline_keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("🚨Updates🚨", url="https://t.me/RoyalToonsOfficial"),
-                InlineKeyboardButton("👷Support👷", url="https://t.me/rv2006rv")
+                InlineKeyboardButton("🚨Updates🚨", url="https://t.me/ToonEncodesIndia"),
+                InlineKeyboardButton("👷Support👷", url="https://t.me/TEMohanish")
             ]
         ]
     )
@@ -109,8 +109,8 @@ async def get_start(bot, message) -> None:
     inline_keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("🚨Updates🚨", url="https://t.me/RoyalToonsOfficial"),
-                InlineKeyboardButton("👷Support👷", url="https://t.me/rv2006rv")
+                InlineKeyboardButton("🚨Updates🚨", url="https://t.me/ToonEncodesIndia"),
+                InlineKeyboardButton("👷Support👷", url="https://t.me/TEMohanish")
             ]
         ]
     )
@@ -138,7 +138,7 @@ To upgrade your plan, please contact the bot owner."""
     inline_keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("Contact Owner", url="https://t.me/rv2006rv")
+                InlineKeyboardButton("Contact Owner", url="https://t.me/TEMohanish")
             ]
         ]
     )
@@ -233,7 +233,7 @@ async def uploader_main(usr_link: str, msg: Message, cb_data: str, message):
     error_recording_video = (await runcmd(f"ffmpeg -probesize 10000000 -analyzeduration 15000000 -timeout 9000000 -i {usr_link} -t {cb_data} -codec copy -map 0:v -map 0:a -ignore_unknown {video_file_path}"))[1]
     if error_recording_video:
         _LOG.info(error_recording_video)
-    set_audio_title_cmd = f'ffmpeg -i "{video_file_path}" -metadata title="CI" -c:v copy -c:a copy "{video_file_path}"'
+    set_audio_title_cmd = f'ffmpeg -i "{video_file_path}" -metadata title="ToonEncodes" -c:v copy -c:a copy "{video_file_path}"'
     await runcmd(set_audio_title_cmd)
     #durat_ion = await get_video_duration(video_file_path)
     '''
@@ -409,7 +409,7 @@ async def StartBot():
     # create download directory, if not exist
     if not os.path.isdir(Config.DOWNLOAD_DIRECTORY):
         os.makedirs(Config.DOWNLOAD_DIRECTORY)
-    print("----@rv2006rv----")
+    print("----@TEMohanish----")
     await rvbot.start()
     print("------Bot Started------")
     await idle()
