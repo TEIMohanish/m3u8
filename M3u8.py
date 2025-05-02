@@ -80,9 +80,34 @@ async def help_cmd(bot, message):
         "- Timestamp must be in hh:mm:ss format.\n"
         "- Bot sends file with auto thumbnail and duration.\n"
         "- Make sure filename doesn't use `/\\:*?\"<>|`\n\n"
-        "_Bot by @rv2006rv_",
+        "_Bot by @TEMohanish_",
         disable_web_page_preview=True
     )
+@rvbot.on_message(filters.command("plan") & filters.user(Config.AUTH_USERS))
+async def plan_cmd(bot, message):
+    text = (
+        "**💠 Subscription Plans**\n\n"
+        "**Free Plan:**\n"
+        "• ⏳ Time gap between recordings\n"
+        "• ⏱ Limited recording length\n\n"
+        "**Premium Benefits:**\n"
+        "• 🚫 No time gaps\n"
+        "• ⏰ Record up to 3–5 hours per task\n"
+        "• 🎧 Multi-audio support\n"
+        "• ⚡ Faster processing\n\n"
+        "**💳 Pricing:**\n"
+        "• 🪙 1 Month — ₹40\n"
+        "• 💫 3 Months — ₹140\n"
+        "• 💎 6 Months — ₹270\n\n"
+        "To upgrade, contact the owner below:"
+    )
+
+    markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("💬 Contact Owner", url="https://t.me/TEMohanish")],
+        [InlineKeyboardButton("📢 Updates", url="https://t.me/ToonEncodesIndia")]
+    ])
+
+    await message.reply_text(text, reply_markup=markup)
 
 @rvbot.on_message(filters.regex(r"^http.*? \d{2}:\d{2}:\d{2} .+") & filters.user(Config.AUTH_USERS))
 async def handle_record(bot, message: Message):
