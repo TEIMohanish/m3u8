@@ -140,65 +140,70 @@ def fetch_segment(url):
     print(f"[+] Segment downloaded, size: {len(resp.content)} bytes")
     return resp.content
 
+
+
+# ... everything above unchanged ...
+
 # === 6. Extract KID and PSSH from segment binary (exact PHP logic) ===
 def extract_kid_pssh_from_segment(binary_content):
     """
     Extract KID from PSSH box in segment binary
-    Matches PHP extractKid() function exactly
+    Fixed hex conversion & correct UUID handling
     """
+    import struct, uuid
     # Convert binary to hex string
     hex_content = binary_content.hex()
-    
-    # Find PSSH marker "70737368" = "pssh" in ASCII
+
+    # Find PSSH marker "70737368" = "pssh"
     pssh_marker = "70737368"
     pssh_offset = hex_content.find(pssh_marker)
-    
     if pssh_offset == -1:
         raise Exception("PSSH box not found in segment")
-    
+
     print(f"[+] PSSH box found at hex offset: {pssh_offset}")
-    
-    # Extract size (4 bytes before "pssh")
-    # PHP: substr($hexContent, $psshOffset - 8, 8)
+
+    # Extract size (4 bytes before 'pssh')
     header_size_hex = hex_content[pssh_offset - 8:pssh_offset]
     header_size = int(header_size_hex, 16)
     print(f"[+] PSSH box size: {header_size} bytes (0x{header_size_hex})")
-    
-    # Extract full PSSH box
-    # PHP: substr($hexContent, $psshOffset - 8, $headerSize * 2)
-    pssh_hex = hex_content[pssh_offset - 8:pssh_offset - 8 + header_size * 2]
-    
-    # Extract KID at offset 68 (32 hex chars = 16 bytes)
-    # PHP: substr($psshHex, 68, 32)
-    kid_hex = pssh_hex[68:68 + 32]
-    
-    if len(kid_hex) != 32:
-        raise Exception(f"Invalid KID length: {len(kid_hex)} (expected 32 hex chars)")
-    
-    print(f"[+] KID (hex): {kid_hex}")
-    
-    # Build new Widevine PSSH box
-    # PHP: "000000327073736800000000edef8ba979d64acea3c827dcd51d21ed000000121210" . $kidHex
-    new_pssh_hex = "000000327073736800000000edef8ba979d64acea3c827dcd51d21ed000000121210" + kid_hex
-    
-    # Convert hex to binary then base64
-    # PHP: base64_encode(hex2bin($newPsshHex))
-    pssh_binary = bytes.fromhex(new_pssh_hex)
-    pssh_b64 = base64.b64encode(pssh_binary).decode('utf-8')
-    
-    # Format KID as UUID
-    # PHP: substr($kidHex, 0, 8) . "-" . substr($kidHex, 8, 4) . "-" . substr($kidHex, 12, 4) . "-" . substr($kidHex, 16, 4) . "-" . substr($kidHex, 20)
-    kid_uuid = f"{kid_hex[0:8]}-{kid_hex[8:12]}-{kid_hex[12:16]}-{kid_hex[16:20]}-{kid_hex[20:32]}"
-    
-    print(f"[+] KID (UUID): {kid_uuid}")
-    print(f"[+] PSSH (base64): {pssh_b64}")
-    
-    return {
-        'kid': kid_uuid,
-        'kid_hex': kid_hex,
-        'pssh': pssh_b64
-    }
 
+    # Extract full PSSH box
+    pssh_hex = hex_content[pssh_offset - 8:pssh_offset - 8 + header_size * 2]
+
+    # --- FIX START: Correct KID offset ---
+    # Convert to raw bytes and parse properly
+    pssh_bytes = bytes.fromhex(pssh_hex)
+    if len(pssh_bytes) < 48:
+        raise Exception("Invalid PSSH box length")
+
+    # The Widevine PSSH v1 contains KIDs starting at offset 32
+    kid_bytes = pssh_bytes[32:48]
+    if len(kid_bytes) != 16:
+        raise Exception("KID length invalid")
+    kid_hex = kid_bytes.hex()
+    kid_uuid = str(uuid.UUID(bytes=kid_bytes))
+    # --- FIX END ---
+
+    print(f"[+] KID (hex): {kid_hex}")
+    print(f"[+] KID (UUID): {kid_uuid}")
+
+    # Build proper Widevine v1 PSSH with that KID
+    widevine_system_id = bytes.fromhex("edef8ba979d64acea3c827dcd51d21ed")
+    version, flags, kid_count = 1, 0, 1
+    box_body = (
+        b"pssh"
+        + struct.pack(">I", (version << 24) | flags)
+        + widevine_system_id
+        + struct.pack(">I", kid_count)
+        + kid_bytes
+        + struct.pack(">I", 0)
+    )
+    total_size = 4 + len(box_body)
+    new_pssh = struct.pack(">I", total_size) + box_body
+    pssh_b64 = base64.b64encode(new_pssh).decode("utf-8")
+    print(f"[+] PSSH (base64): {pssh_b64}")
+
+    return {"kid": kid_uuid, "kid_hex": kid_hex, "pssh": pssh_b64}
 # === 7. Main extraction function ===
 def extract_widevine_pssh(mpd_url):
     """
@@ -229,60 +234,56 @@ def extract_widevine_pssh(mpd_url):
     # Return DRM info and final MPD URL
     return result, final_url
 
+
+
 # === 8. Get decryption keys ===
 def get_keys(KID_UUID, license_url):
     """
     Use extracted KID to get keys from license server
+    Fixed base64 padding + proper UUID ordering
     """
-    print("\n[*] Starting Widevine key extraction...")
     import uuid, base64
-    print(KID_UUID)
-    raw_bytes = uuid.UUID(KID_UUID).bytes
-    b64url_kid = base64.urlsafe_b64encode(raw_bytes).rstrip(b'=').decode()
-    print(f"[*] KID (base64url): {b64url_kid}")
-    
-    # Prepare request payload
-    payload = {
-        "kids": [b64url_kid],
-        "type": "temporary"
-    }
 
-    # Headers for license request
+    print("\n[*] Starting Widevine key extraction...")
+    raw_bytes = uuid.UUID(KID_UUID).bytes
+    b64url_kid = base64.urlsafe_b64encode(raw_bytes).rstrip(b"=").decode()
+    print(f"[*] KID (base64url): {b64url_kid}")
+
+    payload = {"kids": [b64url_kid], "type": "temporary"}
     license_headers = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0',
-        **HEADERS  # Include other headers
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0",
+        **HEADERS,
     }
 
     print(f"[*] Requesting keys from: {license_url}")
-    print(f"[*] Payload: {payload}")
-
-    # Make license request
     response = requests.post(license_url, json=payload, headers=license_headers)
     response.raise_for_status()
-
     license_data = response.json()
     print(f"[*] License response: {license_data}")
 
-    # Extract and convert keys
+    def safe_b64decode(b64_string):
+        b64_string = b64_string.replace("-", "+").replace("_", "/")
+        pad_len = -len(b64_string) % 4
+        return base64.b64decode(b64_string + ("=" * pad_len))
+
     keys = []
-    if 'keys' in license_data:
-        for key_data in license_data['keys']:
-            if 'k' in key_data and 'kid' in key_data:
-                # Decode base64 key and kid to hex
-                key_b64 = key_data['k']
-                kid_b64 = key_data['kid']
-                
-                # Add padding if needed and decode
-                key_hex = base64.urlsafe_b64decode(key_b64 + '==').hex()
-                kid_hex = base64.urlsafe_b64decode(kid_b64 + '==').hex()
-                
-                keys.append(f"{kid_hex}:{key_hex}")
-                print(f"[+] Key: {kid_hex}:{key_hex}")
+    if "keys" in license_data:
+        for entry in license_data["keys"]:
+            if "k" in entry and "kid" in entry:
+                try:
+                    key_hex = safe_b64decode(entry["k"]).hex()
+                    kid_hex = safe_b64decode(entry["kid"]).hex()
+                    pair = f"{kid_hex}:{key_hex}".lower()
+                    keys.append(pair)
+                    print(f"[+] Key: {pair}")
+                except Exception as e:
+                    print(f"[!] Key decode error: {e}")
     else:
         print("[!] No keys found in license response")
-    
+
     return keys
+
 
 # === 9. Download content using yt-dlp ===
 def download_with_ytdlp(mpd_url, output_path, format_id=None):
