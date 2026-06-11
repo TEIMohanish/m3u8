@@ -8,7 +8,7 @@ def monitor_and_trigger_winner(target_match_id):
     
     headers = {
         "Accept": "application/json, text/plain, */*",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MjUzMDksImlhdCI6MTc4MTA4MDA2OCwiZXhwIjoxNzgzNjcyMDY4fQ.gwmvP1s1yyMHK32sWeG0Eg1F72tel4VyPbvqILOBWXQ",
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MjUzMDksImlhdCI6MTc4MTE2MDMwOSwiZXhwIjoxNzgzNzUyMzA5fQ.uiVaADu8-cMatEThn22yrOB4y3R3xQoX1XMENzKsu6Y",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
         "Origin": "https://gaminghelperonline.com",
         "Referer": "https://gaminghelperonline.com/"
